@@ -16,8 +16,8 @@ import com.alibaba.fastjson.JSONObject;
  
 public class Baidu {
 
-	private String id = "20180520000162786";
-	private String key = "26Nmc70mf5G9ZZZ3MPI6";
+	private String id = "";
+	private String key = "";
 
 	public String translate(String query, String from, String to) {
 		StringBuffer sb = new StringBuffer();
