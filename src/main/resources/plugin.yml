@@ -1,6 +1,6 @@
 name: "Server-Mdt-Bot"
 author: "Dr"
 version: "1.0"
-main: "server.Main"
+main: "com.github.dr.serverbot.Main"
 info: "private"
 depends:
