@@ -1,0 +1,6 @@
+name: "Server-Mdt-Bot"
+author: "Dr"
+version: "1.0"
+main: "server.Main"
+info: "private"
+depends:
