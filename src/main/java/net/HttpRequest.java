@@ -16,6 +16,8 @@ import java.net.URL;
 import java.net.Proxy;
 import java.net.SocketAddress;
 import java.net.InetSocketAddress;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -41,10 +43,12 @@ public class HttpRequest {
 			con.setRequestMethod("GET");
 			con.addRequestProperty("Accept-Charset", "UTF-8");
 			con.setRequestProperty("User-Agent", USER_AGENT);
+			con.setRequestProperty("Accept-Encoding", "gzip,deflate");
 			int responseCode = con.getResponseCode();
-			String contentEncoding = con.getHeader("Content-Encoding"); 
+			String contentEncoding = con.getContentEncoding(); 
+			Log.info(contentEncoding);
 			if (null != contentEncoding && contentEncoding.indexOf("gzip") != -1) { 
-				GZIPInputStream gZIPInputStream = new GZIPInputStream(conn.getInputStream());
+				GZIPInputStream gZIPInputStream = new GZIPInputStream(con.getInputStream());
 				in = new BufferedReader(new InputStreamReader(gZIPInputStream,"utf-8"));
 				while ((line = in.readLine()) != null) 
 					result.append(new String(line.getBytes("UTF-8")));
@@ -79,6 +83,7 @@ public class HttpRequest {
 			conn.setRequestProperty("connection", "Keep-Alive");
 			conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 			conn.setRequestProperty("User-Agent",USER_AGENT);
+			conn.setRequestProperty("Accept-Encoding", "gzip,deflate");
 			conn.setDoOutput(true);
 			conn.setDoInput(true);
 			out = new PrintWriter(conn.getOutputStream());
@@ -86,14 +91,14 @@ public class HttpRequest {
 			out.flush();
 			// 定义 BufferedReader输入流来读取URL的响应
 			in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"));
-			String contentEncoding = con.getHeader("Content-Encoding"); 
+			String contentEncoding = conn.getContentEncoding(); 
 			if (null != contentEncoding && contentEncoding.indexOf("gzip") != -1) { 
 				GZIPInputStream gZIPInputStream = new GZIPInputStream(conn.getInputStream());
 				in = new BufferedReader(new InputStreamReader(gZIPInputStream,"utf-8"));
 	            while ((line = in.readLine()) != null) 
 	                result.append(new String(line.getBytes("UTF-8")));
 			} else {
-				in = new BufferedReader(new InputStreamReader(con.getInputStream(),"utf-8"));
+				in = new BufferedReader(new InputStreamReader(conn.getInputStream(),"utf-8"));
 				while ((line = in.readLine()) != null) 
 					result.append("\n"+line);
 			}
