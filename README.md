@@ -1,2 +1,2 @@
-# ServerBot
-Mindustry-Server QQ-Bot
+## ServerBot
+基于Mindustry服务器的配套插件
