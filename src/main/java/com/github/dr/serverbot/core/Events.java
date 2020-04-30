@@ -11,8 +11,10 @@ import com.github.dr.serverbot.util.log.Log;
 import net.mamoe.mirai.message.data.MessageChain;
 
 import static com.github.dr.serverbot.core.command.ex.Groups.contains;
+import static com.github.dr.serverbot.util.DateUtil.getLocalTimeFromU;
 import static com.github.dr.serverbot.util.ExtractUtil.findMatchString;
 import static com.github.dr.serverbot.util.IsUtil.notisBlank;
+import static com.github.dr.serverbot.util.file.LoadConfig.customLoad;
 
 public class Events {
 
@@ -93,20 +95,28 @@ public class Events {
 			String QQ = String.valueOf(event.getSender().getId());
 			
 			if(Maps.isQQRunnable(QQ+"OCR")) {
-				Log.info(event.getMessage().toString());
 				String img = findMatchString(event.getMessage().toString(),"\\{.{8}-(.{4}-){3}.{12}\\}\\.mirai");
+				if(Maps.getQQRunnable(QQ+"OCR").endtime < getLocalTimeFromU()) {
+					Maps.removeQQRunnable(QQ+"OCR");
+					return;
+				}
 				if(notisBlank(img)) {
 					Runnablex rx = Maps.getQQRunnable(QQ+"OCR");
 					rx.data = img;
 					rx.run.run();
+					Maps.removeQQRunnable(QQ+"OCR");
+				} else {
+					event.getGroup().sendMessage(customLoad("img.no"));
+					return;
 				}
 			}
-			String msg = toString(event.getMessage());
-			String newStr = msg.substring(1, msg.length() > 10 ? 10 : msg.length()).toUpperCase();
-			Log.info(newStr);
-			if (contains(newStr)) {
-				Groups strategy = Groups.valueOf(newStr);
-				strategy.run(event);
+			String arr = toString(event.getMessage()).split("\\s+")[0];
+			if (arr.length() < 10) {
+				String msgs = arr.substring(1,arr.length()).toUpperCase();
+				if (contains(msgs)) {
+					Groups strategy = Groups.valueOf(msgs);
+					strategy.run(event);
+				}
 			}
 		});
 	}

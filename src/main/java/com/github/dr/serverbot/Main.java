@@ -1,5 +1,7 @@
 package com.github.dr.serverbot;
 
+import java.io.*;
+
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.github.dr.serverbot.core.Commands;
@@ -88,6 +90,16 @@ public class Main extends PluginBase {
 			Data.QunData.add(Long.valueOf(array.getString(i)));
 		}
 		Config.Server_Url = date.get("Server_Url").toString();
+		try {
+            if (!FileUtil.File(Data.Plugin_Data_Path).toPath("/Config.ini").exists()) {
+                String data = (String) FileUtil.readfile(false, new InputStreamReader(Main.class.getResourceAsStream("/Config.ini"), "UTF-8"));
+                FileUtil.writefile(data, false);
+                Log.info("Defect : Start creating write external Config File", Data.Plugin_Data_Path + "/Config.ini");
+            }
+        } catch (UnsupportedEncodingException e) {
+            Log.fatal("File write error", e);
+        }
+        Config.laodConfig();
 	}
 
 	@Override

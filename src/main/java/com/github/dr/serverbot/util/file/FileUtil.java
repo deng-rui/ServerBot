@@ -81,7 +81,7 @@ public class FileUtil {
 		return filelist;
 	}
 
-	public synchronized void writefile(Object log, boolean cover) {
+	public static void writefile(Object log, boolean cover) {
 		OutputStreamWriter osw = null;
 		try {
 			File parent = file.getParentFile();
@@ -127,7 +127,7 @@ public class FileUtil {
 		return null;
 	}
 
-	public Object readfile(boolean list, InputStreamReader isr) {
+	public static Object readfile(boolean list, InputStreamReader isr) {
 		try { 
 			BufferedReader br = new BufferedReader(isr); 
 			String line = null; 

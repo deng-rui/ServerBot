@@ -2,6 +2,7 @@ package com.github.dr.serverbot.core.command.ex;
 
 import arc.util.Strings;
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.github.dr.serverbot.Main;
 import com.github.dr.serverbot.data.db.PlayerData;
@@ -32,10 +33,12 @@ import java.util.function.Consumer;
 import static com.github.dr.serverbot.data.db.Player.getSqlite;
 import static com.github.dr.serverbot.data.db.Player.isSqliteUser;
 import static com.github.dr.serverbot.net.HttpRequest.doGet;
+import static com.github.dr.serverbot.net.HttpRequest.doPost;
+import static com.github.dr.serverbot.util.DateUtil.getLocalTimeFromU;
 import static com.github.dr.serverbot.util.DateUtil.simp;
 import static com.github.dr.serverbot.util.ExtractUtil.longToIp;
 import static com.github.dr.serverbot.util.ExtractUtil.secToTime;
-import static com.github.dr.serverbot.util.IsUtil.isNumeric;
+import static com.github.dr.serverbot.util.IsUtil.*;
 import static com.github.dr.serverbot.util.file.LoadConfig.customLoad;
 
 
@@ -302,7 +305,62 @@ public enum Groups {
 		}
 	},
 
-	AAA {
+	BOCR {
+		@Override
+		public void run(GroupMessage event) {
+			String QQ = String.valueOf(event.getSender().getId());
+			event.getGroup().sendMessage(customLoad("ocr.start"));
+			Runnablex rx = new Runnablex(QQ+"OCR");
+			rx.run = (() -> {
+				Image fromId = MessageUtils.newImage(rx.data.toString());
+				if(Config.BAIDU_OCR_ACT_TIME < getLocalTimeFromU()) {
+					StringBuffer post = new StringBuffer();
+					post.append("grant_type=client_credentials")
+						.append("&client_id="+Config.BAIDU_OCR_ID)
+						.append("&client_secret="+Config.BAIDU_OCR_KEY);
+					String result = doPost("https://aip.baidubce.com/oauth/2.0/token",post.toString());
+					if (isBlank(result)) {
+						result = doPost("https://aip.baidubce.com/oauth/2.0/token",post.toString());
+					}
+					if (isBlank(result)) {
+						result = doPost("https://aip.baidubce.com/oauth/2.0/token",post.toString());
+					}
+					if (isBlank(result)) {
+						return;
+					}
+					JSONObject date = JSONObject.parseObject(result);
+					Config.BAIDU_OCR_ACT = date.get("access_token").toString();
+					Config.BAIDU_OCR_ACT_TIME = getLocalTimeFromU(Long.valueOf(date.get("expires_in").toString()));
+				}
+				String url = event.getBot().queryImageUrl(fromId);
+				String rt = doPost("https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic?access_token="+Config.BAIDU_OCR_ACT,"url="+url);
+				if (isBlank(rt)) {
+					rt = doPost("https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic?access_token="+Config.BAIDU_OCR_ACT,"url="+url);
+				}
+				if (isBlank(rt)) {
+					rt = doPost("https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic?access_token="+Config.BAIDU_OCR_ACT,"url="+url);
+				}
+				if (isBlank(rt)) {
+					return;
+				}
+				StringBuffer sb = new StringBuffer();
+				String text;
+				JSONObject json = JSON.parseObject(rt);
+				JSONArray rArray = json.getJSONArray("words_result");
+				for (int i = 0; i < rArray.size(); i++) {
+					JSONObject r = (JSONObject)rArray.get(i);
+					text = r.get("words").toString();
+					if (notisBlank(text)) {
+		                sb.append(text);
+		            }
+				}
+				event.getGroup().sendMessage(sb.toString());
+			});
+			Maps.addQQRunnable(QQ+"OCR",rx);
+		}
+	},
+
+	BTOCR {
 		@Override
 		public void run(GroupMessage event) {
 			String QQ = String.valueOf(event.getSender().getId());
