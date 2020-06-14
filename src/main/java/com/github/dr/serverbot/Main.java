@@ -1,7 +1,5 @@
 package com.github.dr.serverbot;
 
-import java.io.*;
-
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.github.dr.serverbot.core.Commands;
@@ -11,6 +9,9 @@ import com.github.dr.serverbot.data.global.Data;
 import com.github.dr.serverbot.util.file.FileUtil;
 import com.github.dr.serverbot.util.log.Log;
 import net.mamoe.mirai.console.plugins.PluginBase;
+
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 
 import static com.github.dr.serverbot.data.db.SQLite.InitializationSQLite;
 import static com.github.dr.serverbot.data.json.Json.InitializationJson;
@@ -67,12 +68,16 @@ public class Main extends PluginBase {
 		}
 	}
 */
+
 	@Override
 	public void onLoad(){
 		super.onLoad();
 		/* 注册驱动 */
 		Log.set("ALL");
-		importLib("org.xerial","sqlite-jdbc","3.30.1",Data.Plugin_Lib_Path);
+		//importLib("org.xerial","sqlite-jdbc","3.30.1",Data.Plugin_Lib_Path);
+        importLib("org.mariadb.jdbc", "mariadb-java-client", "2.6.0", Data.Plugin_Lib_Path);
+
+
 		/* 初始化数据 */
 		/* CalssLoad-Java8 :( Java8+则ERROR */
 		if (FileUtil.File(Data.Plugin_Data_Path).toPath("Data.db").exists()) {

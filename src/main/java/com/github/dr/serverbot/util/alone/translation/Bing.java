@@ -63,7 +63,6 @@ public class Bing {
 			}
 		}
 		return result.toString();
-			
 	}
 
 	public String translate(String word, String to) {

@@ -16,6 +16,7 @@ public class Data {
 	public static List<Long> QunData = new ArrayList<Long>();
 
 	// PINGS
-	public static final ThreadPoolExecutor Thred_service 		= new ThreadPoolExecutor(100,150,1,TimeUnit.MINUTES,new LinkedBlockingDeque<Runnable>(500));
+	public static final ThreadPoolExecutor Thred_service 		= new ThreadPoolExecutor(10000,11000,1,TimeUnit.MINUTES,new LinkedBlockingDeque<Runnable>(50000));
+	public static final ThreadPoolExecutor ReRun 				= new ThreadPoolExecutor(10,10,1,TimeUnit.MINUTES,new LinkedBlockingDeque<Runnable>());
 
 }

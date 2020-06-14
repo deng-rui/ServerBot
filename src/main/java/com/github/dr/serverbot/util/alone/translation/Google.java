@@ -14,11 +14,6 @@ import static com.github.dr.serverbot.util.ExtractUtil.getkeys;
 import static com.github.dr.serverbot.util.IsUtil.isBlank;
 import static com.github.dr.serverbot.util.IsUtil.notisBlank;
 
-//Java
-//GA-Exted
-//Static
-//Json
-
 public class Google {
 
 	private static ScriptEngine engine = null;

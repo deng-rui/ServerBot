@@ -1,92 +1,56 @@
 package com.github.dr.serverbot.core.command.ex;
 
-import arc.util.Strings;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.github.dr.serverbot.Main;
-import com.github.dr.serverbot.data.db.PlayerData;
 import com.github.dr.serverbot.data.global.Config;
 import com.github.dr.serverbot.data.global.Data;
 import com.github.dr.serverbot.data.global.Maps;
 import com.github.dr.serverbot.data.global.cache.Runnablex;
+import com.github.dr.serverbot.net.Net;
+import com.github.dr.serverbot.util.ReExp;
 import com.github.dr.serverbot.util.alone.translation.Baidu;
 import com.github.dr.serverbot.util.alone.translation.Bing;
 import com.github.dr.serverbot.util.alone.translation.Google;
 import com.github.dr.serverbot.util.log.Log;
-import mindustry.net.Host;
-import mindustry.net.NetworkIO;
-import net.mamoe.mirai.message.GroupMessage;
+import net.mamoe.mirai.message.GroupMessageEvent;
 import net.mamoe.mirai.message.data.Image;
 import net.mamoe.mirai.message.data.MessageChain;
 import net.mamoe.mirai.message.data.MessageUtils;
+import net.mamoe.mirai.message.data.QuoteReply;
 
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.nio.ByteBuffer;
 import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
-import static com.github.dr.serverbot.data.db.Player.getSqlite;
-import static com.github.dr.serverbot.data.db.Player.isSqliteUser;
 import static com.github.dr.serverbot.net.HttpRequest.doGet;
 import static com.github.dr.serverbot.net.HttpRequest.doPost;
+import static com.github.dr.serverbot.net.Net.pingServer;
 import static com.github.dr.serverbot.util.DateUtil.getLocalTimeFromU;
-import static com.github.dr.serverbot.util.DateUtil.simp;
-import static com.github.dr.serverbot.util.ExtractUtil.longToIp;
-import static com.github.dr.serverbot.util.ExtractUtil.secToTime;
 import static com.github.dr.serverbot.util.IsUtil.*;
+import static com.github.dr.serverbot.util.encryption.Topt.newTotp;
 import static com.github.dr.serverbot.util.file.LoadConfig.customLoad;
 
 
+/**
+ * @author Dr
+ */
 public enum Groups {
 	/**
 	 * 敷衍注释
 	 */
 	BOT {
 		@Override
-		public void run(GroupMessage event) {
-			event.getGroup().sendMessage(MessageUtils.quote(event.getMessage()).plus(customLoad("bot.version")));
-		}
-	},
-
-	INFO {
-		@Override
-		public void run(GroupMessage event) {
-			long QQ = event.getSender().getId();
-			if(!isSqliteUser(QQ)) {
-				main.getScheduler().async(() -> {
-					StringBuffer response = new StringBuffer();
-					response.append(Config.Server_Url)
-						.append(Data.Get)
-						.append("info")
-						.append("?user="+getSqlite(QQ).get("USER"));
-					String result = doGet(response.toString());
-					if(result == null) {
-                        result = doGet(response.toString());
-                    }
-					if(result == null) {
-                        result = doGet(response.toString());
-                    }
-					if(result == null) {
-						event.getGroup().sendMessage(customLoad("net.err"));
-						return;
-					}
-					JSONObject playerdata = JSONObject.parseObject(new String(Base64.getDecoder().decode(JSONObject.parseObject(result).get("result").toString())));
-					PlayerData data = JSON.toJavaObject(playerdata,PlayerData.class);
-					Object[] params = {data.NAME,data.UUID,longToIp(data.IP),data.Country,data.Language,data.Level,data.Exp,data.Reqexp,data.Reqtotalexp,data.Buildcount,data.Cumulative_build,data.Pipe_build,data.Dismantledcount,data.Pvpwincount,data.Pvplosecount,data.Authority,simp(data.Authority_effective_time*1000L,data.Time_format),secToTime(data.Playtime),simp(data.LastLogin*1000L,data.Time_format),simp(data.Lastchat*1000L,data.Time_format),data.Killcount,data.Deadcount,data.Joincount,data.Breakcount,data.Online};
-					event.getGroup().sendMessage(customLoad("player.info",params));
-				});
-			}
+		public void run(GroupMessageEvent event) {
+			event.getGroup().sendMessage(new QuoteReply(event.getSource()).plus(customLoad("bot.version")));
 		}
 	},
 
 	STATUS {
 		@Override
-		public void run(GroupMessage event) {
+		public void run(GroupMessageEvent event) {
 			main.getScheduler().async(() -> {
 				StringBuffer response = new StringBuffer();
 				response.append(Config.Server_Url)
@@ -94,12 +58,12 @@ public enum Groups {
 				.append("status");
 				//.append("&user="+Player.getSQLite(QQ).get("USER"));
 				Log.info(response.toString());
-				String result = doGet(response.toString());
+				String result = doGet(response.toString(),newTotp(Config.TOPT_KEY));
 				if(result == null) {
-                    result = doGet(response.toString());
+                    result = doGet(response.toString(),newTotp(Config.TOPT_KEY));
                 }
 				if(result == null) {
-                    result = doGet(response.toString());
+                    result = doGet(response.toString(),newTotp(Config.TOPT_KEY));
                 }
 				if(result == null) {
 					event.getGroup().sendMessage(customLoad("net.err"));
@@ -119,46 +83,33 @@ public enum Groups {
 
 	PING {
 		@Override
-		public void run(GroupMessage event) {
+		public void run(GroupMessageEvent event) {
 			main.getScheduler().async(() -> {
-				String [] arr = toSg(event.getMessage()).split("\\s+");
+				String [] arr = toString(event.getMessage()).split("\\s+");
 				final int len = 2;
 				if (arr.length >= len) {
-					Consumer<Host> listener = result -> {
+					Consumer<Net.Host> listener = result -> {
 						if (result.name != null) {
 							String mode = "Survival";
-							if (result.mode.toString().contains("pvp")) {
+							if (result.mode.contains("3")) {
 								mode = "PVP";
-							}
-							if (result.mode.toString().contains("attack")) {
+							} else if (result.mode.contains("2")) {
 								mode = "Attack";
+							} else if (result.mode.contains("1")) {
+								mode = "Sandbox";
 							}
 							event.getGroup().sendMessage(customLoad("ping.yes", new Object[]{result.name, result.players, result.playerLimit, result.mapname, mode, result.wave, result.version, result.ping}));
 						} else {
 							event.getGroup().sendMessage(customLoad("ping.err"));
 						}
 					};
-					try {
-						String resultIP = arr[1];
-						int port = 6567;
-						if (arr[1].contains(":") && isNumeric(arr[1].split(":")[1])) {
-							resultIP = arr[1].split(":")[0];
-							port = Strings.parseInt(arr[1].split(":")[1]);
-						}
-						DatagramSocket socket = new DatagramSocket();
-						socket.send(new DatagramPacket(new byte[]{-2, 1}, 2, InetAddress.getByName(resultIP), port));
-						socket.setSoTimeout(2000);
-						DatagramPacket packet = new DatagramPacket(new byte[256], 256);
-						long start = System.currentTimeMillis();
-						socket.receive(packet);
-						ByteBuffer buffer = ByteBuffer.wrap(packet.getData());
-						Host host = NetworkIO.readServerData(arr[1], buffer);
-						host.ping = (int) (System.currentTimeMillis() - start);
-						listener.accept(host);
-						socket.disconnect();
-					} catch (Exception e) {
-						listener.accept(new Host(null, arr[1], null, 0, 0, 0, null, null, 0, null));
+					String ip = arr[1];
+					int port = 6567;
+					if (arr[1].contains(":") && isNumeric(arr[1].split(":")[1])) {
+						ip = arr[1].split(":")[0];
+						port = Integer.parseInt(arr[1].split(":")[1]);
 					}
+					pingServer(listener,ip,port);
 				} else {
 					return;
 				}
@@ -168,19 +119,19 @@ public enum Groups {
 
 	PINGS {
 		@Override
-		public void run(GroupMessage event) {
+		public void run(GroupMessageEvent event) {
 			if(!spings) {
 				event.getGroup().sendMessage(customLoad("sleep.pings"));
 				return;
 			}
 			main.getScheduler().async(() -> {
-				String [] arr = toSg(event.getMessage()).split("\\s+");
+				String [] arr = toString(event.getMessage()).split("\\s+");
 				final int len = 2;
 				if(arr.length < len) {
                     return;
                 }
 				StringBuffer response = new StringBuffer();
-				Consumer<Host> listener = result -> {
+				Consumer<Net.Host> listener = result -> {
 					if(result.name != null) {
                         response.append(result.address.split(":")[1]+",");
                     }
@@ -191,51 +142,30 @@ public enum Groups {
 				try {
 					if(arr[1].contains(":") && isNumeric(arr[1].split(":")[1].split("-")[0]) && isNumeric(arr[1].split(":")[1].split("-")[1])) {
 						resultIP = arr[1].split(":")[0];
-						sport = Strings.parseInt(arr[1].split(":")[1].split("-")[0]);
-						eport = Strings.parseInt(arr[1].split(":")[1].split("-")[1]);
+						sport = Integer.parseInt(arr[1].split(":")[1].split("-")[0]);
+						eport = Integer.parseInt(arr[1].split(":")[1].split("-")[1]);
 					}
 				}catch(Exception e){
 					return;
 				}
 				final int maxport = 65535;
 				final int smlport = 1;
-				if(sport < smlport || eport < smlport || sport > maxport || eport > maxport || eport < sport) {
-                    return;
-                }
-				final int maxrange = 300;
-				if((eport - sport) > maxrange) {
-					event.getGroup().sendMessage(customLoad("range.max"));
-					return;
-				}
+				if (sport < smlport || eport < smlport || sport > maxport || eport > maxport || eport < sport) return;
 				spings = false;
 				eport++;
-				for(int i=sport;i<eport;i++) {
-					final int ii = i;
+				event.getGroup().sendMessage(customLoad("sleep.60"));
+				for (int i = sport; i < eport; i++) {
+					final int port = i;
 					final String ip = resultIP;
 					Data.Thred_service.execute(() -> {
-						try{
-							DatagramSocket socket = new DatagramSocket();
-							socket.send(new DatagramPacket(new byte[]{-2, 1}, 2, InetAddress.getByName(ip), ii));
-							socket.setSoTimeout(2000);
-							DatagramPacket packet = new DatagramPacket(new byte[256], 256);
-							long start = System.currentTimeMillis();
-							socket.receive(packet);
-							ByteBuffer buffer = ByteBuffer.wrap(packet.getData());
-							Host host = NetworkIO.readServerData(ip+":"+ii, buffer);
-							host.ping = (int)(System.currentTimeMillis() - start);
-							listener.accept(host);
-							socket.disconnect();
-						}catch(Exception e){
-							listener.accept(new Host(null, arr[1], null, 0, 0, 0, null, null, 0, null));
-						}
+						pingServer(listener,ip,port);
 					});
 				}
-				try{
-					event.getGroup().sendMessage(customLoad("sleep.10"));
-					Thread.sleep(10000);
-				}catch(Exception e){
+				try {
+					Thread.sleep(60000);
+				} catch (Exception e) {
 				}
-				event.getGroup().sendMessage((response.length() > 0)?response.toString():customLoad("no.data"));
+				event.getGroup().sendMessage((response.length() > 0) ? response.toString() : customLoad("no.data"));
 				spings = true;
 			});
 		}
@@ -246,27 +176,27 @@ public enum Groups {
 	 */
 	BTR {
 		@Override
-		public void run(GroupMessage event) {
+		public void run(GroupMessageEvent event) {
 			main.getScheduler().async(() -> {
-				String [] arr = toSg(event.getMessage()).split("\\s+");
+				String [] arr = toString(event.getMessage()).split("\\s+");
 				final int len = 3;
 				if(arr.length < len) {
                     return;
                 }
 				StringBuffer response = new StringBuffer();
 				for(int i=2,lens=arr.length;i<lens;i++) {
-                    response.append(arr[i]);
+                    response.append(" "+arr[i]);
                 }
-				event.getGroup().sendMessage(MessageUtils.quote(event.getMessage()).plus(new Baidu().translate(response.toString(),arr[1])));
+				event.getGroup().sendMessage(new QuoteReply(event.getSource()).plus(new Baidu().translate(response.toString(),arr[1])));
 			});
 		}
 	},
 
 	GTR {
 		@Override
-		public void run(GroupMessage event) {
+		public void run(GroupMessageEvent event) {
 			main.getScheduler().async(() -> {
-				String [] arr = toSg(event.getMessage()).split("\\s+");
+				String [] arr = toString(event.getMessage()).split("\\s+");
 				final int len = 3;
 				if(arr.length < len) {
                     return;
@@ -275,16 +205,16 @@ public enum Groups {
 				for(int i=2,lens=arr.length;i<lens;i++) {
                     response.append(arr[i]);
                 }
-				event.getGroup().sendMessage(MessageUtils.quote(event.getMessage()).plus(new Google().translate(response.toString(),arr[1])));
+				event.getGroup().sendMessage(new QuoteReply(event.getSource()).plus(new Google().translate(response.toString(),arr[1])));
 			});
 		}
 	},
 
 	WTR {
 		@Override
-		public void run(GroupMessage event) {
+		public void run(GroupMessageEvent event) {
 			main.getScheduler().async(() -> {
-				String [] arr = toSg(event.getMessage()).split("\\s+");
+				String [] arr = toString(event.getMessage()).split("\\s+");
 				final int len = 3;
 				if(arr.length < len) {
                     return;
@@ -293,21 +223,21 @@ public enum Groups {
 				for(int i=2,lens=arr.length;i<lens;i++) {
                     response.append(arr[i]);
                 }
-				event.getGroup().sendMessage(MessageUtils.quote(event.getMessage()).plus(new Bing().translate(response.toString(),arr[1])));
+				event.getGroup().sendMessage(new QuoteReply(event.getSource()).plus(new Bing().translate(response.toString(),arr[1])));
 			});
 		}
 	},
 
 	CSF {
 		@Override
-		public void run(GroupMessage event) {
-				//aaa = (() -> event.getGroup().sendMessage(toSg(event.getMessage())));
+		public void run(GroupMessageEvent event) {
+				//aaa = (() -> event.getGroup().sendMessage(toString(event.getMessage())));
 		}
 	},
 
 	BOCR {
 		@Override
-		public void run(GroupMessage event) {
+		public void run(GroupMessageEvent event) {
 			String QQ = String.valueOf(event.getSender().getId());
 			event.getGroup().sendMessage(customLoad("ocr.start"));
 			Runnablex rx = new Runnablex(QQ+"OCR");
@@ -318,34 +248,40 @@ public enum Groups {
 					post.append("grant_type=client_credentials")
 						.append("&client_id="+Config.BAIDU_OCR_ID)
 						.append("&client_secret="+Config.BAIDU_OCR_KEY);
-					String result = doPost("https://aip.baidubce.com/oauth/2.0/token",post.toString());
-					if (isBlank(result)) {
-						result = doPost("https://aip.baidubce.com/oauth/2.0/token",post.toString());
-					}
-					if (isBlank(result)) {
-						result = doPost("https://aip.baidubce.com/oauth/2.0/token",post.toString());
-					}
+					Object result = new ReExp() {
+						@Override
+				        protected Object runs() throws Exception {
+				        	String r = doPost("https://aip.baidubce.com/oauth/2.0/token",post.toString());			           
+				            if (r == null) {
+				                throw new Exception();
+				            }
+				            return r;
+				        }
+					}.setSleepTime(10).setRetryFreq(3).execute();
 					if (isBlank(result)) {
 						return;
 					}
-					JSONObject date = JSONObject.parseObject(result);
+					JSONObject date = JSONObject.parseObject(result.toString());
 					Config.BAIDU_OCR_ACT = date.get("access_token").toString();
 					Config.BAIDU_OCR_ACT_TIME = getLocalTimeFromU(Long.valueOf(date.get("expires_in").toString()));
 				}
 				String url = event.getBot().queryImageUrl(fromId);
-				String rt = doPost("https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic?access_token="+Config.BAIDU_OCR_ACT,"url="+url);
-				if (isBlank(rt)) {
-					rt = doPost("https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic?access_token="+Config.BAIDU_OCR_ACT,"url="+url);
-				}
-				if (isBlank(rt)) {
-					rt = doPost("https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic?access_token="+Config.BAIDU_OCR_ACT,"url="+url);
-				}
+				Object rt = new ReExp() {
+					@Override
+			        protected Object runs() throws Exception {
+			        	String r = doPost("https://aip.baidubce.com/rest/2.0/ocr/v1/general_basic?access_token="+Config.BAIDU_OCR_ACT,"url="+url);			           
+			            if (r == null) {
+			                throw new Exception();
+			            }
+			            return r;
+			        }
+				}.setSleepTime(10).setRetryFreq(3).execute();
 				if (isBlank(rt)) {
 					return;
 				}
 				StringBuffer sb = new StringBuffer();
 				String text;
-				JSONObject json = JSON.parseObject(rt);
+				JSONObject json = JSON.parseObject(rt.toString());
 				JSONArray rArray = json.getJSONArray("words_result");
 				for (int i = 0; i < rArray.size(); i++) {
 					JSONObject r = (JSONObject)rArray.get(i);
@@ -362,7 +298,7 @@ public enum Groups {
 
 	BTOCR {
 		@Override
-		public void run(GroupMessage event) {
+		public void run(GroupMessageEvent event) {
 			String QQ = String.valueOf(event.getSender().getId());
 			Runnablex rx = new Runnablex(QQ+"OCR");
 			rx.run = (() -> {
@@ -370,6 +306,14 @@ public enum Groups {
 				event.getGroup().sendMessage(event.getBot().queryImageUrl(fromId));
 			});
 			Maps.addQQRunnable(QQ+"OCR",rx);
+		}
+	},
+
+	给我 {
+		@Override
+		public void run(GroupMessageEvent event) {
+			event.getSender().mute(5);
+			event.getGroup().sendMessage("5S");
 		}
 	};
 
@@ -388,9 +332,9 @@ public enum Groups {
 		return list.contains(name);
 	}
 
-	public abstract void run(GroupMessage event);
+	public abstract void run(GroupMessageEvent event);
 
-	private static String toSg(MessageChain chain) {
+	static String toString(MessageChain chain) {
 		return chain.contentToString();
 	}
 }

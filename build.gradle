@@ -13,17 +13,10 @@ repositories {
     jcenter()
 }
 
-ext{
-	mindustryVersion = 'v104.6'
-}
-
 dependencies{
-		compileOnly("net.mamoe:mirai-core:0.39.5")
-		compileOnly("net.mamoe:mirai-console:0.4.11")
+		compileOnly("net.mamoe:mirai-core:1.0.2")
+		compileOnly("net.mamoe:mirai-console:0.5.2")
 		implementation group: 'com.alibaba', name: 'fastjson', version: '1.2.59'
-		implementation "com.github.Anuken.Arc:arc-core:$mindustryVersion"
-		implementation "com.github.Anuken.Mindustry:core:$mindustryVersion"
-		//Mindustry
 }
 
 jar{
@@ -37,5 +30,8 @@ jar{
 }
 
 tasks.withType(JavaCompile) {  
-		options.encoding = "UTF-8"  
+	options.encoding = "UTF-8"
+	options.compilerArgs << "-Xlint:unchecked" << "-Werror"
+	options.compilerArgs << "-Xdiags:verbose" << "-Werror"
+	options.compilerArgs << "-Xlint:deprecation" << "-Werror"
 }

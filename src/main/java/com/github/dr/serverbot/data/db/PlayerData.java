@@ -1,49 +1,52 @@
 package com.github.dr.serverbot.data.db;
 
 public class PlayerData {
-	// 奇怪的public
-	public String UUID;
-	public String User;
-	public String NAME;
-	public String Mail;
+    public String uuid;
+    public String user;
+    public String name;
+    public String mail;
 	//
-	public long IP;
-	public int GMT;
-	public String Country;
-	public byte Time_format;
-	public String Language;
-	public long LastLogin;
-	public int Kickcount;
+
+    public long ip;
+    public int gmt;
+    public String country;
+    public byte timeFormat;
+    public String language;
+    public long lastLogin;
+    public int kickCount;
 	//int Sensitive;
-	public boolean Translate;
-	public int Level;
+
+    public boolean translate;
+    public int level;
 	// MAX = 32767
-	public short Exp;
-	public long Reqexp;
-	public long Reqtotalexp;
-	public long Playtime;
-	public int Pvpwincount;
-	public int Pvplosecount;
-	public int Authority;
-	public long Authority_effective_time;
-	public long Lastchat;
-	public int Deadcount;
-	public int Killcount;
-	public int Joincount;
-	public int Breakcount;
+
+    public short exp;
+    public long reqexp;
+    public long reqtotalExp;
+    public long playTime;
+    public int pvpwinCount;
+    public int pvploseCount;
+    public int authority;
+    public long authorityEffectiveTime;
+    public long lastChat;
+    public int deadCount;
+    public int killCount;
+    public int joinCount;
+    public int breakCount;
 	//
-	public int Buildcount;
-	public int Dismantledcount;
-	public int Cumulative_build;
-	public int Pipe_build;
+
+    public int buildCount;
+    public int dismantledCount;
+    public int cumulativeBuild;
+    public int pipeBuild;
 	/* */
-	public boolean Online;
-	public String PasswordHash;
-	public String CSPRNG;
-	//
-	public boolean Login;
-	public long Jointime;
-	public long Backtime;
-	public Object Info;
+
+    public boolean online;
+    public String passwordHash;
+    public String csprng;
+
+    public PlayerData(String a) {
+    	uuid = a;
+    }
 }
 	

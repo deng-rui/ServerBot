@@ -60,7 +60,7 @@ public class Librarydependency implements Driver {
 	private static void notWork(String name, String version, String savePath) {
 		try {
 			URLClassLoader classLoader = new URLClassLoader(new URL[] {new File(FileUtil.File(savePath).getPath(name+"_"+version+".jar")).toURI().toURL()});
-			Driver driver = (Driver) Class.forName("org.sqlite.JDBC", true, classLoader).getDeclaredConstructor().newInstance();
+			Driver driver = (Driver) Class.forName("org.mariadb.jdbc.Driver", true, classLoader).getDeclaredConstructor().newInstance();
 			// 加壳
 			DriverManager.registerDriver(new Librarydependency(driver));
 		} catch (Exception e){

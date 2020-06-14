@@ -6,61 +6,74 @@ import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.zip.GZIPInputStream;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.zip.GZIPInputStream;
 //GA-Exted
 
 public class HttpRequest {
 
 	private static final String USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36";
 	private static final String USER_TESTS = "Mozilla/5.0 (JAVA 11; x64) HI JAVA TO WEB";
+	private static final Charset UTF_8 = StandardCharsets.UTF_8;
 
 	public static String doGet(String url) {
-		HttpURLConnection con = null;
-		BufferedReader in = null;
-		StringBuffer result = new StringBuffer();
-		String line = null;
-		try {
-			URL conn = new URL(url);
-			con = (HttpURLConnection) conn.openConnection();
-			con.setConnectTimeout(3000);
-			con.setReadTimeout(3000);
-			con.setRequestMethod("GET");
-			con.addRequestProperty("Accept-Charset", "UTF-8");
-			con.setRequestProperty("User-Agent", USER_AGENT);
-			con.setRequestProperty("Accept-Encoding", "gzip,deflate");
-			int responseCode = con.getResponseCode();
-			String contentEncoding = con.getContentEncoding(); 
-			if (null != contentEncoding && contentEncoding.indexOf("gzip") != -1) {
-				GZIPInputStream gZIPInputStream = new GZIPInputStream(con.getInputStream());
-				in = new BufferedReader(new InputStreamReader(gZIPInputStream,StandardCharsets.UTF_8));
-				while ((line = in.readLine()) != null) {
-                    result.append(new String(line.getBytes(StandardCharsets.UTF_8),StandardCharsets.UTF_8));
-                }
-			} else {
-				in = new BufferedReader(new InputStreamReader(con.getInputStream(),StandardCharsets.UTF_8));
-				while ((line = in.readLine()) != null) {
-                    result.append("\n"+line);
-                }
-			}
-		} catch (IOException e) {
-			Log.error("doGet!",e);
-		} finally{
-			if(in != null) {
-                try {
-                    in.close();
-                } catch (IOException e) {
-                    in = null;
-                }
-            }
-			if(con != null) {
-                con.disconnect();
-            }
+		return doGet(url,null);
+	}
+
+	public static String doGet(String url,String tok) {
+	HttpURLConnection con = null;
+	BufferedReader in = null;
+	StringBuffer result = new StringBuffer();
+	String line = null;
+	try {
+		URL conn = new URL(url);
+		con = (HttpURLConnection) conn.openConnection();
+		con.setConnectTimeout(3000);
+		con.setReadTimeout(3000);
+		con.setRequestMethod("GET");
+		con.addRequestProperty("Accept-Charset", "UTF-8");
+		con.setRequestProperty("User-Agent", USER_AGENT);
+		con.setRequestProperty("Accept-Encoding", "gzip,deflate");
+		if (tok != null) {
+			con.setRequestProperty("Tonken-ASD", tok);
 		}
-		return result.toString();
+		int responseCode = con.getResponseCode();
+		String contentEncoding = con.getContentEncoding();
+		if (null != contentEncoding && contentEncoding.indexOf("gzip") != -1) {
+			GZIPInputStream gZIPInputStream = new GZIPInputStream(con.getInputStream());
+			in = new BufferedReader(new InputStreamReader(gZIPInputStream));
+			while ((line = in.readLine()) != null) {
+				result.append(new String(line.getBytes("ISO-8859-1"),UTF_8));
+			}
+		} else {
+			in = new BufferedReader(new InputStreamReader(con.getInputStream(),UTF_8));
+			while ((line = in.readLine()) != null) {
+				result.append("\n"+line);
+			}
+		}
+	} catch (IOException e) {
+		Log.error("doGet!",e);
+	} finally{
+		if(in != null) {
+			try {
+				in.close();
+			} catch (IOException e) {
+				in = null;
+			}
+		}
+		if(con != null) {
+			con.disconnect();
+		}
+	}
+	return result.toString();
 	}
 
 	public static String doPost(String url, String param) {
+		return doPost(url,param,null);
+	}
+
+	public static String doPost(String url, String param, String tok) {
 		StringBuilder result = new StringBuilder();
 		PrintWriter out = null;
 		BufferedReader in = null;
@@ -70,10 +83,13 @@ public class HttpRequest {
 			URLConnection conn =  realUrl.openConnection();
 			conn.setRequestProperty("accept", "*/*");
 			conn.addRequestProperty("Accept-Charset", "UTF-8");
+			conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded;charset=utf-8");
 			conn.setRequestProperty("connection", "Keep-Alive");
-			conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
 			conn.setRequestProperty("User-Agent",USER_AGENT);
 			conn.setRequestProperty("Accept-Encoding", "gzip,deflate");
+			if (tok != null) {
+				conn.setRequestProperty("Tonken-ASD", tok);
+			}
 			conn.setDoOutput(true);
 			conn.setDoInput(true);
 			out = new PrintWriter(conn.getOutputStream());
@@ -82,12 +98,12 @@ public class HttpRequest {
 			String contentEncoding = conn.getContentEncoding(); 
 			if (null != contentEncoding && contentEncoding.indexOf("gzip") != -1) {
 				GZIPInputStream gZIPInputStream = new GZIPInputStream(conn.getInputStream());
-				in = new BufferedReader(new InputStreamReader(gZIPInputStream,StandardCharsets.UTF_8));
+				in = new BufferedReader(new InputStreamReader(gZIPInputStream));
 	            while ((line = in.readLine()) != null) {
-                    result.append(new String(line.getBytes(StandardCharsets.UTF_8),StandardCharsets.UTF_8));
+                    result.append(new String(line.getBytes("ISO-8859-1"),UTF_8));
                 }
 			} else {
-				in = new BufferedReader(new InputStreamReader(conn.getInputStream(),StandardCharsets.UTF_8));
+				in = new BufferedReader(new InputStreamReader(conn.getInputStream(),UTF_8));
 				while ((line = in.readLine()) != null) {
                     result.append("\n"+line);
                 }

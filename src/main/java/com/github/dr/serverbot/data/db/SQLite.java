@@ -14,8 +14,8 @@ public class SQLite {
 			Connection c = DriverManager.getConnection("jdbc:sqlite:"+FileUtil.File(Data.Plugin_Data_Path).getPath("Data.db"));
 			Statement stmt = c.createStatement();
 			// 时间可以改成BUGINT
-			sql = "CREATE TABLE UserBind (" +
-				  "User 					TEXT,"+
+			sql = "CREATE TABLE IF NOT EXISTS UserBind (" +
+				  "User 					VARCHAR(10),"+
 				  "QQ 						BIGINT)";
 			//Cryptographically Secure Pseudo-Random Number Generator
 			//安全系列3
